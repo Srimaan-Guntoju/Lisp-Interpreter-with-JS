@@ -1,15 +1,21 @@
 let input='begin (define r 10) (* pi (* r r)))'
-let input1= '(define r 10e+23)'
+let input1= '(if (> (* 11 11) 120) (* 7 6) oops)'
 //console.log(symbolParser(input));
 console.log(parser(input1))
 
 function parser(input){
-	if(input[0]!=='(') return "Invalid syntax";
-	let output=[];
+	let result= valueparser(input);
+	if (result[1].length!==0) return null;
+	return result[0];
+}
+
+function expressionParser(input){
+	if(input[0]!=='(') return null;
+	let output=[], tempdata='';
 	if(input[0]==='('){
-		let tempdata= input.slice(1);
+		tempdata= input.slice(1);
 		while(tempdata[0]!==')'){
-			result= symbolParser(tempdata);
+			result= valueparser(tempdata);
 			if(!isNaN(result[0])) result[0]= Number(result[0]);
 			output.push(result[0]);
 			tempdata= result[1].replace(/^\s+/, "")
@@ -17,10 +23,11 @@ function parser(input){
 		}
 
 	}
-	return output
+	return [output, tempdata.slice(1)]
 }
 
 function symbolParser(input){
+	if(input[0]==='(') return null;
 	let output='', i;
 	for(i in input){
 		console.log(input[i])
@@ -29,4 +36,13 @@ function symbolParser(input){
 	}
 	console.log([output])
 	return [output, input.slice(i)];
+}
+
+function valueparser(input){
+  let funcArr=[symbolParser, expressionParser];
+  for(let i of funcArr){
+    let result= i(input);
+    if (result!== null) return result;
+  }
+  return null;
 }
