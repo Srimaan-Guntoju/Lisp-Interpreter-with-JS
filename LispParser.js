@@ -1,4 +1,7 @@
 // Get process.stdin as the standard input object.
+
+'use strict'
+
 var standard_input = process.stdin
 
 // Set input character encoding.
@@ -17,67 +20,86 @@ standard_input.on('data', function (data) {
   } else {
     // Print user input in console.
     console.log('LispyJS : ' + typeof (data))
-    console.log(parser(data))
+    console.log(valueParser(data))
   }
 })
 var operations = {
-  '+': (a, b) => (a + b),
-  '-': (a, b) => (a - b),
-  '*': (a, b) => (a * b),
-  '/': (a, b) => (a / b),
-  '>': (a, b) => (a > b),
-  '<': (a, b) => (a < b),
-  '>=': (a, b) => (a >= b),
-  '<=': (a, b) => (a <= b),
-  '=': (a, b) => (a == b),
+  '+': (ar) => ar.reduce((a, b) => a + b),
+  '-': (ar) => ar.reduce((a, b) => a - b),
+  '*': (ar) => ar.reduce((a, b) => a * b),
+  '/': (ar) => ar.reduce((a, b) => a / b),
+  '>': (ar) => ar.reduce((a, b) => a > b),
+  '<': (ar) => ar.reduce((a, b) => a < b),
+  '>=': (ar) => ar.reduce((a, b) => a >= b),
+  '<=': (ar) => ar.reduce((a, b) => a <= b),
+  '=': (ar) => ar.reduce((a, b) => a == b),
+  max: (ar) => Math.max(...ar),
+  min: (ar) => Math.min(...ar),
+  abs: (ar) => Math.abs(...ar),
   begin: (arr) => arr[arr.length - 1]
+
 }
-var variables = {}
+var variables = {
+  pi: Math.PI
+}
 
 function accumulate (list, operator) {
-  return list.reduce(operations[operator])
+  // return list.reduce(operations[operator])
+  console.log(list, operations[operator])
+  return operations[operator](list)
 }
 
-function parser (input) {
+function expressionParser (input) {
   if (!isNaN(input)) return Number(input)
+  if (input[0] !== '(') return null
   let output = []; let tempdata = ''
   if (input[0] === '(') {
-    tempdata = input.slice(1)
+    tempdata = input.slice(1).replace(/^\s+/, '')
     while (tempdata[0] !== ')') {
-      result = valueparser(tempdata)
+      const result = valueParser(tempdata)
       if (!isNaN(result[0])) result[0] = Number(result[0])
-      if (result[0] in variables) result[0] = variables[result[0]]
+      if (output.length !== 0 && output[0] !== 'define' && result[0] in operations) result[0] = operations[result[0]]
       output.push(result[0])
       tempdata = result[1].replace(/^\s+/, '')
     }
-    console.log(output, tempdata, 1)
-    if (output[0] === 'if') {
-      if (output[1] === 1) output = output[2]
-      if (output[1] === 0) output = output[3]
-    } else if (output[0] === 'define') {
-      variables[output[1]] = output[2]
-    } else {
-      console.log(output.slice(1)[output.slice(1).length - 1], output[0])
-      output = accumulate(output.slice(1), output[0])
-    }
+    console.log(output, 1, tempdata)
   }
+  output = valueParser(output)
   return [output, tempdata.slice(1)]
 }
-
 function symbolParser (input) {
-  if (input[0] === '(') return null
+  if (input[0] === '(' || Array.isArray(input)) return null
   let output = ''; let i
   for (i in input) {
-    /// console.log(input[i])
+    console.log([input[i]], 'sp')
     if (input[i] !== ' ' && input[i] !== ')') output += input[i]
-    if (input[i] === ' ' || input[i] === ')') break
+    if (input[i] === ' ' || input[i] === ')' || input[i] === '\n') break
   }
-  // console.log([output])
+  // console.log(input, [output], 'sp')
   return [output, input.slice(i)]
 }
-
-function valueparser (input) {
-  const funcArr = [symbolParser, parser]
+function operatorParser (expArray) {
+  if (!Array.isArray(expArray)) return null
+  if (expArray[0] in operations) return accumulate(expArray.slice(1), expArray[0])
+  return null
+}
+function ifParser (expArray) {
+  if (!Array.isArray(expArray)) return null
+  if (expArray[0] === 'if') {
+    if (expArray[1] === 1) return expArray[2]
+    if (expArray[1] === 0) return expArray[3]
+  }
+  return null
+}
+function defineParser (expArray) {
+  console.log(expArray, 'abc')
+  if (!Array.isArray(expArray) || expArray.length !== 3) return null
+  if (expArray[0] === 'define' && isNaN(expArray[1])) {
+  	operations[expArray[1]] = expArray[2]
+  } else return null
+}
+function valueParser (input) {
+  const funcArr = [symbolParser, expressionParser, operatorParser, ifParser, defineParser]
   for (const i of funcArr) {
     const result = i(input)
     if (result !== null) return result
