@@ -36,34 +36,26 @@ var operations = {
   max: (ar) => Math.max(...ar),
   min: (ar) => Math.min(...ar),
   abs: (ar) => Math.abs(...ar),
-  begin: (arr) => arr[arr.length - 1]
-
-}
-var variables = {
+  begin: (ar) => ar[ar.length - 1],
+  car: (ar) => ar[0],
+  cdr: (ar) => ar.slice(1),
   pi: Math.PI
-}
-
-function accumulate (list, operator) {
-  // return list.reduce(operations[operator])
-  console.log(list, operations[operator])
-  return operations[operator](list)
 }
 
 function expressionParser (input) {
   if (!isNaN(input)) return Number(input)
   if (input[0] !== '(') return null
-  let output = []; let tempdata = ''
-  if (input[0] === '(') {
-    tempdata = input.slice(1).replace(/^\s+/, '')
-    while (tempdata[0] !== ')') {
-      const result = valueParser(tempdata)
-      if (!isNaN(result[0])) result[0] = Number(result[0])
-      if (output.length !== 0 && output[0] !== 'define' && result[0] in operations) result[0] = operations[result[0]]
-      output.push(result[0])
-      tempdata = result[1].replace(/^\s+/, '')
-    }
-    console.log(output, 1, tempdata)
+  let output = []; let tempdata = input.slice(1).replace(/^\s+/, '')
+  while (tempdata[0] !== ')') {
+    const result = valueParser(tempdata)
+    console.log(result, 'exp')
+    if (!isNaN(result[0])) result[0] = Number(result[0])
+    if (output.length !== 0 && output[0] !== 'define' && result[0] in operations) result[0] = operations[result[0]]
+    output.push(result[0])
+    tempdata = result[1].replace(/^\s+/, '')
   }
+  console.log(output, '||', tempdata)
+  if (!(output[0] in operations)) return null
   output = valueParser(output)
   return [output, tempdata.slice(1)]
 }
@@ -71,16 +63,14 @@ function symbolParser (input) {
   if (input[0] === '(' || Array.isArray(input)) return null
   let output = ''; let i
   for (i in input) {
-    console.log([input[i]], 'sp')
     if (input[i] !== ' ' && input[i] !== ')') output += input[i]
     if (input[i] === ' ' || input[i] === ')' || input[i] === '\n') break
   }
-  // console.log(input, [output], 'sp')
   return [output, input.slice(i)]
 }
 function operatorParser (expArray) {
   if (!Array.isArray(expArray)) return null
-  if (expArray[0] in operations) return accumulate(expArray.slice(1), expArray[0])
+  if (expArray[0] in operations) return operations[expArray[0]](expArray.slice(1))
   return null
 }
 function ifParser (expArray) {
@@ -92,7 +82,7 @@ function ifParser (expArray) {
   return null
 }
 function defineParser (expArray) {
-  console.log(expArray, 'abc')
+  // console.log(expArray, 'abc')
   if (!Array.isArray(expArray) || expArray.length !== 3) return null
   if (expArray[0] === 'define' && isNaN(expArray[1])) {
   	operations[expArray[1]] = expArray[2]
