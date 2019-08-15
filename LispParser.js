@@ -3,14 +3,8 @@
 'use strict'
 
 var standard_input = process.stdin
-
-// Set input character encoding.
 standard_input.setEncoding('utf-8')
-
-// Prompt user to input data in console.
 console.log('Please input text in command line.')
-
-// When user input data and click enter key.
 standard_input.on('data', function (data) {
   // User input exit.
   if (data === 'exit\n') {
@@ -19,7 +13,6 @@ standard_input.on('data', function (data) {
     process.exit()
   } else {
     // Print user input in console.
-    console.log('LispyJS : ' + typeof (data))
     console.log(valueParser(data))
   }
 })
@@ -46,6 +39,7 @@ function expressionParser (input) {
   if (!isNaN(input)) return Number(input)
   if (input[0] !== '(') return null
   let output = []; let tempdata = input.slice(1).replace(/^\s+/, '')
+  if (!(valueParser(tempdata)[0] in operations)) return null
   while (tempdata[0] !== ')') {
     const result = valueParser(tempdata)
     console.log(result, 'exp')
@@ -55,7 +49,7 @@ function expressionParser (input) {
     tempdata = result[1].replace(/^\s+/, '')
   }
   console.log(output, '||', tempdata)
-  if (!(output[0] in operations)) return null
+  // if (!(output[0] in operations)) return null
   output = valueParser(output)
   return [output, tempdata.slice(1)]
 }
@@ -73,20 +67,48 @@ function operatorParser (expArray) {
   if (expArray[0] in operations) return operations[expArray[0]](expArray.slice(1))
   return null
 }
-function ifParser (expArray) {
-  if (!Array.isArray(expArray)) return null
-  if (expArray[0] === 'if') {
-    if (expArray[1] === 1) return expArray[2]
-    if (expArray[1] === 0) return expArray[3]
+function ifParser (input) {
+  if (input[0] !== '(') return null
+  const exp = symbolParser(input.slice(1).replace(/^\s+/, ''))
+  console.log(exp)
+  if (exp[0] !== 'if') return null
+  const condition = valueParser(exp[1].replace(/^\s+/, ''))
+  if (condition[0] === true) return valueParser(condition[1].replace(/^\s+/, ''))
+  if (condition[0] === false) {
+  	const trueExp = expStringParser(condition[1].replace(/^\s+/, ''))
+  		return valueParser(trueExp[1].replace(/^\s+/, ''))
   }
-  return null
 }
+function expStringParser (input) {
+  if (symbolParser(input) !== null) return symbolParser(input)
+  if (input[0] !== '(') return null
+  const stack = ['(']; let output = '('; let i = 1
+  while (stack.length !== 0) {
+    if (input[i] == ')') stack.pop()
+    if (input[i] == '(') stack.push('(')
+    output += (input[i]); i++
+  }
+  return [output, input.slice(i)]
+}
+
+function quoteParser (input) {
+  if (input[0] !== '(') return null
+  const exp = symbolParser(input.slice(1).replace(/^\s+/, ''))
+  if (exp[0] !== 'quote') return null
+  return expStringParser(exp[1].replace(/^\s+/, ''))
+}
+
 function defineParser (expArray) {
-  // console.log(expArray, 'abc')
-  if (!Array.isArray(expArray) || expArray.length !== 3) return null
-  if (expArray[0] === 'define' && isNaN(expArray[1])) {
-  	operations[expArray[1]] = expArray[2]
-  } else return null
+  if (expArray[0] !== '(') return null
+  const output = []; let tempdata = expArray.slice(1).replace(/^\s+/, '')
+  while (tempdata[0] != ')') {
+    const result = valueParser(tempdata)
+    output.push(result[0])
+    tempdata = result[1].replace(/^\s+/, '')
+  }
+  if (output[0] !== 'define' || !isNaN(output[1]) || output.length !== 3) return null
+  operations[output[1]] = output[2]
+  return [null, tempdata.slice(1)]
 }
 function valueParser (input) {
   const funcArr = [symbolParser, expressionParser, operatorParser, ifParser, defineParser]
