@@ -75,8 +75,8 @@ function ifParser (input) {
   const condition = valueParser(exp[1].replace(/^\s+/, ''))
   if (condition[0] === true) return valueParser(condition[1].replace(/^\s+/, ''))
   if (condition[0] === false) {
-  	const trueExp = expStringParser(condition[1].replace(/^\s+/, ''))
-  		return valueParser(trueExp[1].replace(/^\s+/, ''))
+    const trueExp = expStringParser(condition[1].replace(/^\s+/, ''))
+    return valueParser(trueExp[1].replace(/^\s+/, ''))
   }
 }
 function expStringParser (input) {
@@ -99,15 +99,17 @@ function quoteParser (input) {
 }
 
 function defineParser (expArray) {
-  if (expArray[0] !== '(') return null
   const output = []; let tempdata = expArray.slice(1).replace(/^\s+/, '')
+  if (expArray[0] !== '(' || valueParser(tempdata)[0] !== 'define') return null
   while (tempdata[0] != ')') {
     const result = valueParser(tempdata)
+    if (result === null) return null
     output.push(result[0])
     tempdata = result[1].replace(/^\s+/, '')
   }
-  if (output[0] !== 'define' || !isNaN(output[1]) || output.length !== 3) return null
+  if (!isNaN(output[1]) || output.length !== 3) return null
   operations[output[1]] = output[2]
+  console.log(operations)
   return [null, tempdata.slice(1)]
 }
 function valueParser (input) {
