@@ -12,7 +12,6 @@ standard_input.on('data', function (data) {
     console.log('User input complete, program exit.')
     process.exit()
   } else {
-    // Print user input in console.
     console.log(valueParser(data))
   }
 })
@@ -36,14 +35,12 @@ var operations = {
 }
 
 function expressionParser (input) {
-  if (!isNaN(input)) return Number(input)
   if (input[0] !== '(') return null
   let output = []; let tempdata = input.slice(1).replace(/^\s+/, '')
   if (!(valueParser(tempdata)[0] in operations)) return null
   while (tempdata[0] !== ')') {
     const result = valueParser(tempdata)
     console.log(result, 'exp')
-    if (!isNaN(result[0])) result[0] = Number(result[0])
     if (output.length !== 0 && output[0] !== 'define' && result[0] in operations) result[0] = operations[result[0]]
     output.push(result[0])
     tempdata = result[1].replace(/^\s+/, '')
@@ -60,6 +57,7 @@ function symbolParser (input) {
     if (input[i] !== ' ' && input[i] !== ')') output += input[i]
     if (input[i] === ' ' || input[i] === ')' || input[i] === '\n') break
   }
+  if (!isNaN(output)) output = Number(output)
   return [output, input.slice(i)]
 }
 function operatorParser (expArray) {
@@ -67,18 +65,22 @@ function operatorParser (expArray) {
   if (expArray[0] in operations) return operations[expArray[0]](expArray.slice(1))
   return null
 }
+
 function ifParser (input) {
   if (input[0] !== '(') return null
   const exp = symbolParser(input.slice(1).replace(/^\s+/, ''))
-  console.log(exp)
+  // console.log(exp)
   if (exp[0] !== 'if') return null
   const condition = valueParser(exp[1].replace(/^\s+/, ''))
+  console.log(condition)
+  console.log(condition)
   if (condition[0] === true) return valueParser(condition[1].replace(/^\s+/, ''))
   if (condition[0] === false) {
     const trueExp = expStringParser(condition[1].replace(/^\s+/, ''))
     return valueParser(trueExp[1].replace(/^\s+/, ''))
   }
 }
+
 function expStringParser (input) {
   if (symbolParser(input) !== null) return symbolParser(input)
   if (input[0] !== '(') return null
@@ -109,13 +111,14 @@ function defineParser (expArray) {
   }
   if (!isNaN(output[1]) || output.length !== 3) return null
   operations[output[1]] = output[2]
-  console.log(operations)
+  // console.log(operations)
   return [null, tempdata.slice(1)]
 }
 function valueParser (input) {
   const funcArr = [symbolParser, expressionParser, operatorParser, ifParser, defineParser]
   for (const i of funcArr) {
     const result = i(input)
+    console.log(i, result)
     if (result !== null) return result
   }
   return null
