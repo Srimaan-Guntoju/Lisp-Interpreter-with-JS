@@ -12,7 +12,7 @@ standard_input.on('data', function (data) {
     console.log('User input complete, program exit.')
     process.exit()
   } else {
-    console.log(valueParser(data))
+    console.log(lambdaParser(data))
   }
 })
 var operations = {
@@ -46,7 +46,6 @@ function expressionParser (input) {
     tempdata = result[1].replace(/^\s+/, '')
   }
   console.log(output, '||', tempdata)
-  // if (!(output[0] in operations)) return null
   output = valueParser(output)
   return [output, tempdata.slice(1)]
 }
@@ -122,4 +121,33 @@ function valueParser (input) {
     if (result !== null) return result
   }
   return null
+}
+function lambdaParser (input) {
+  if (input[0] !== '(') return null
+  const exp = symbolParser(input.slice(1).replace(/^\s+/, ''))
+  console.log(exp)
+  if (exp[0] !== 'lambda') return null
+  let tempdata = exp[1].replace(/^\s+/, '').slice(1); const args = []
+  while (tempdata[0] !== ')') {
+    const arg = symbolParser(tempdata.replace(/^\s+/, ''))
+    args.push(arg[0])
+    tempdata = arg[1].replace(/^\s+/, '')
+    console.log(arg, tempdata, 1)
+  }
+  console.log(args, tempdata)
+  const body = expStringParser(tempdata.slice(1).replace(/^\s+/, ''))
+  console.log(args, body, 'body')
+  return function (arr) {
+    if (arr.length !== args.length) return null
+    const localScope = Object.create(scope)
+    for (const i in args) localScope[args[i]] = arr[i]
+    return valueParser(body, localScope)
+  }
+}
+
+function blah (BLAH) {
+  // do nothing
+  /* add scope to all the functions. functions need a scope to retrieve the variable values
+  while evaluating the expressions. */
+
 }
