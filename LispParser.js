@@ -10,8 +10,7 @@ standard_input.on('data', function (data) {
     console.log('User input complete, program exit.')
     process.exit()
   } else {
-    console.log([data, 'input'])
-    console.log(valueParser(data.slice(0, data.length - 1), globalScope))
+    console.log(valueParser(data.slice(0, data.length - 1), globalScope)[0])
   }
 })
 const globalScope = {
@@ -34,26 +33,23 @@ const globalScope = {
 }
 
 function expressionParser (input, scope) {
-  console.log(input)
   if (input[0] !== '(') return null
   let output = []; let tempdata = input.slice(1).replace(/^\s+/, '')
   if (findVariable(valueParser(tempdata, scope)[0], scope) == null) return null
   while (tempdata[0] !== ')') {
-    console.log(tempdata, 'tempexp')
     const result = valueParser(tempdata, scope)
-    console.log(result, 'exp')
     if (output.length !== 0 && output[0] !== 'define' && findVariable(result[0], scope) !== null) result[0] = findVariable(result[0], scope)
     output.push(result[0])
     tempdata = result[1].replace(/^\s+/, '')
   }
-  console.log(output, '||', tempdata)
+  // console.log(output, '||', tempdata)
   output = valueParser(output, scope)
   return [output, tempdata.slice(1)]
 }
 
 function symbolParser (input, scope) {
   if (input[0] === '(' || Array.isArray(input)) return null
-  console.log(findVariable(input.slice(0, input.length - 1), scope), input.slice(0, input.length - 1), 'variable')
+  // console.log(findVariable(input.slice(0, input.length - 1), scope), input.slice(0, input.length - 1), 'variable')
   if (findVariable(input, scope) !== null) return [findVariable(input, scope), '']
   let output = ''; let i
   for (i in input) {
@@ -62,13 +58,13 @@ function symbolParser (input, scope) {
   }
   if (!isNaN(output)) output = Number(output)
   // if (findVariable(output, scope) !== null) output = findVariable(output, scope)
-  console.log([output, input.slice(i)])
+  // console.log([output, input.slice(i)])
   return [output, input.slice(i)]
 }
 
 function operatorParser (expArray, scope) {
   if (!Array.isArray(expArray)) return null
-  console.log('test1', expArray)
+  // console.log('test1', expArray)
   // if (expArray[0] in scope) return scope[expArray[0]](expArray.slice(1))
   if (findVariable(expArray[0], scope) !== null) return findVariable(expArray[0], scope)(expArray.slice(1))
   return null
@@ -77,15 +73,14 @@ function operatorParser (expArray, scope) {
 function ifParser (input, scope) {
   if (input[0] !== '(') return null
   const exp = symbolParser(input.slice(1).replace(/^\s+/, ''), scope)
-  console.log(input, exp)
+  // console.log(input, exp)
   if (exp == null || exp[0] !== 'if') return null
   const condition = valueParser(exp[1].replace(/^\s+/, ''), scope)
-  console.log(condition)
-  if (condition[0] === true) return valueParser(condition[1].replace(/^\s+/, ''), scope)
-  if (condition[0] === false) {
-    const trueExp = expStringParser(condition[1].replace(/^\s+/, ''))
-    console.log(trueExp)
-    return valueParser(trueExp[1].replace(/^\s+/, ''), scope)
+  const truebool = typeof (condition[0]) === 'string' ? booleanparser(condition[0])[0] : condition[0]
+  if (truebool === true) return valueParser(condition[1].replace(/^\s+/, ''), scope)
+  if (truebool === false) {
+    const trueExpr = expStringParser(condition[1].replace(/^\s+/, ''))
+    return valueParser(trueExpr[1].replace(/^\s+/, ''), scope)
   }
 }
 
@@ -109,7 +104,6 @@ function quoteParser (input, scope) {
 }
 
 function defineParser (input, scope) {
-  console.log(input)
   if (input[0] !== '(' || valueParser(input.slice(1).replace(/^\s+/, ''), scope)[0] !== 'define') return null
   const output = []; let tempdata = input.slice(1).replace(/^\s+/, '')
   while (tempdata[0] != ')') {
@@ -118,14 +112,9 @@ function defineParser (input, scope) {
     output.push(result[0])
     tempdata = result[1].replace(/^\s+/, '')
   }
-  console.log(output, tempdata)
+  // console.log(output, tempdata)
   if (!isNaN(output[1]) || output.length !== 3) return null
-  if (findVariable(output[2], scope) !== null) {
-    scope[output[1]] = findVariable(output[2], scope)
-  } else {
-    scope[output[1]] = output[2]
-  }
-  console.log(scope)
+  scope[output[1]] = findVariable(output[2], scope) !== null ? findVariable(output[2], scope) : output[2]
   return [null, tempdata.slice(1)]
 }
 
@@ -142,7 +131,7 @@ function valueParser (input, scope) {
 function lambdaParser (input, scope) {
   if (input[0] !== '(') return null
   const exp = symbolParser(input.slice(1).replace(/^\s+/, ''), scope)
-  console.log(exp)
+  // console.log(exp)
   if (exp == null || exp[0] !== 'lambda') return null
   let tempdata = exp[1].replace(/^\s+/, '').slice(1); const args = []
   while (tempdata[0] !== ')') {
@@ -153,7 +142,7 @@ function lambdaParser (input, scope) {
   }
   // console.log(args, tempdata)
   const body = expStringParser(tempdata.slice(1).replace(/^\s+/, ''))
-  console.log(args, body, 'body')
+  // console.log(args, body, 'body')
   return [function (arr) {
     if (arr.length !== args.length) return null
     const localScope = { parent: scope }
@@ -167,4 +156,10 @@ function findVariable (variable, scope) {
   if (scope == undefined) return null
   if (variable in scope) return scope[variable]
   return findVariable(variable, scope.parent)
+}
+
+function booleanparser (input) {
+  if (input.startsWith('true')) return [true, input.slice(4)]
+  if (input.startsWith('false')) return [false, input.slice(5)]
+  return null
 }
