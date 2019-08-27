@@ -44,7 +44,7 @@ function sExpressionParser (input, scope) {
 }
 
 function expressionParser (input, scope) {
-  return opExpressionParser(input, scope) || ifParser(input, scope)
+  return opExpressionParser(input, scope) || ifParser(input, scope) || symbolParser(input, scope)
 }
 
 function specialExpressionParser (input, scope) {
@@ -54,15 +54,15 @@ function specialExpressionParser (input, scope) {
 function opExpressionParser (input, scope) {
   if (input[0] !== '(') return null
   let output = []; let tempdata = input.slice(1).replace(/^\s+/, '')
-  if (findVariable(valueParser(tempdata, scope)[0], scope) == null) return null
+  if (findVariable(sExpressionParser(tempdata, scope)[0], scope) == null) return null
   while (tempdata[0] !== ')') {
-    const result = valueParser(tempdata, scope)
+    const result = sExpressionParser(tempdata, scope)
     if (output.length !== 0 && output[0] !== 'define' && findVariable(result[0], scope) !== null) result[0] = findVariable(result[0], scope)
     output.push(result[0])
     tempdata = result[1].replace(/^\s+/, '')
   }
   console.log(output, '||', tempdata)
-  output = valueParser(output, scope)
+  output = operatorParser(output, scope)
   return [output, tempdata.slice(1)]
 }
 
@@ -94,12 +94,12 @@ function ifParser (input, scope) {
   const exp = symbolParser(input.slice(1).replace(/^\s+/, ''), scope)
   // console.log(input, exp)
   if (exp == null || exp[0] !== 'if') return null
-  const condition = valueParser(exp[1].replace(/^\s+/, ''), scope)
+  const condition = expressionParser(exp[1].replace(/^\s+/, ''), scope)
   const truebool = typeof (condition[0]) === 'string' ? booleanparser(condition[0])[0] : condition[0]
-  if (truebool === true) return valueParser(condition[1].replace(/^\s+/, ''), scope)
+  if (truebool === true) return sExpressionParser(condition[1].replace(/^\s+/, ''), scope)
   if (truebool === false) {
     const trueExpr = expStringParser(condition[1].replace(/^\s+/, ''))
-    return valueParser(trueExpr[1].replace(/^\s+/, ''), scope)
+    return sExpressionParser(trueExpr[1].replace(/^\s+/, ''), scope)
   }
 }
 
@@ -123,10 +123,10 @@ function quoteParser (input, scope) {
 }
 
 function defineParser (input, scope) {
-  if (input[0] !== '(' || valueParser(input.slice(1).replace(/^\s+/, ''), scope)[0] !== 'define') return null
+  if (input[0] !== '(' || symbolParser(input.slice(1).replace(/^\s+/, ''), scope)[0] !== 'define') return null
   const output = []; let tempdata = input.slice(1).replace(/^\s+/, '')
   while (tempdata[0] != ')') {
-    const result = valueParser(tempdata, scope)
+    const result = sExpressionParser(tempdata, scope)
     if (result === null) return null
     output.push(result[0])
     tempdata = result[1].replace(/^\s+/, '')
@@ -167,7 +167,7 @@ function lambdaParser (input, scope) {
     const localScope = { parent: scope }
     for (const i in args) localScope[args[i]] = arr[i]
     console.log(body, localScope)
-    return valueParser(body[0], localScope)[0]
+    return sExpressionParser(body[0], localScope)[0]
   }, body[1].slice(1)]
 }
 
