@@ -10,7 +10,7 @@ standard_input.on('data', function (data) {
     console.log('User input complete, program exit.')
     process.exit()
   } else {
-    console.log(valueParser(data.slice(0, data.length - 1), globalScope)[0])
+    console.log(evaluate(data.slice(0, data.length - 1)))
   }
 })
 const globalScope = {
@@ -31,8 +31,27 @@ const globalScope = {
   cdr: (ar) => ar.slice(1),
   pi: Math.PI
 }
+function evaluate (inp) {
+  const result = sExpressionParser(inp, globalScope)
+  console.log(result)
+  return result[0]
+}
+
+function sExpressionParser (input, scope) {
+  if (!isNaN(input)) return [Number(input), '']
+  if (findVariable(input, scope) !== null) return [findVariable(input, scope), '']
+  return expressionParser(input, scope) || specialExpressionParser(input, scope)
+}
 
 function expressionParser (input, scope) {
+  return opExpressionParser(input, scope) || ifParser(input, scope)
+}
+
+function specialExpressionParser (input, scope) {
+  return defineParser(input, scope) || lambdaParser(input, scope) || quoteParser(input, scope)
+}
+
+function opExpressionParser (input, scope) {
   if (input[0] !== '(') return null
   let output = []; let tempdata = input.slice(1).replace(/^\s+/, '')
   if (findVariable(valueParser(tempdata, scope)[0], scope) == null) return null
@@ -42,7 +61,7 @@ function expressionParser (input, scope) {
     output.push(result[0])
     tempdata = result[1].replace(/^\s+/, '')
   }
-  // console.log(output, '||', tempdata)
+  console.log(output, '||', tempdata)
   output = valueParser(output, scope)
   return [output, tempdata.slice(1)]
 }
@@ -119,10 +138,10 @@ function defineParser (input, scope) {
 }
 
 function valueParser (input, scope) {
-  const funcArr = [symbolParser, expressionParser, operatorParser, ifParser, defineParser, lambdaParser]
+  const funcArr = [symbolParser, opExpressionParser, operatorParser, ifParser, defineParser, lambdaParser]
   for (const i of funcArr) {
     const result = i(input, scope)
-    console.log(i, result)
+    // console.log(i, result)
     if (result !== null) return result
   }
   return null
