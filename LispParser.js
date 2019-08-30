@@ -166,7 +166,7 @@ function lambdaParser (input, scope) {
   // console.log(args, body, 'body')
   return [function (arr) {
     if (arr.length !== args.length) return null
-    const localScope = { parent: scope }
+    const localScope = { _parent: scope }
     for (const i in args) localScope[args[i]] = arr[i]
     // console.log(body, localScope)
     return sExpressionParser(body[0], localScope)[0]
@@ -176,7 +176,7 @@ function lambdaParser (input, scope) {
 function findVariable (variable, scope) {
   if (scope == undefined) return null
   if (variable in scope) return scope[variable]
-  return findVariable(variable, scope.parent)
+  return findVariable(variable, scope._parent)
 }
 
 function booleanparser (input) {
